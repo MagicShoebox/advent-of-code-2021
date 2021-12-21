@@ -1,15 +1,13 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Util.Input (putResult, showResult) where
+module Util.Input (withInput) where
 
 import System.Environment (getArgs, getProgName)
 
-showResult f = putResult $ show . f
-
-putResult f =
+withInput f =
   getArgs >>= parseArgs >>= \case
     Left progName -> putStrLn $ usage progName
-    Right input -> putStrLn $ f input
+    Right input -> f input
 
 parseArgs [] = Right <$> getContents
 parseArgs ["-"] = Right <$> getContents
