@@ -16,13 +16,22 @@ part1 input = score draws board
     (draws, board) = firstWinner 1 allDraws boards
     (allDraws, boards) = parseInput input
 
-part2 = tbd
+part2 input = score draws board
+  where
+    (draws, board) = lastWinner (length allDraws) allDraws boards
+    (allDraws, boards) = parseInput input
 
-score draws board = last draws * sum (map (sum . filter (not . (`elem` draws))) board)
+score draws board = last draws * sum (map (sum . unmatched) board)
+  where
+    unmatched = filter (not . (`elem` draws))
 
 firstWinner n draws boards = case find (isWinner $ take n draws) boards of
   Just board -> (take n draws, board)
   Nothing -> firstWinner (n + 1) draws boards
+
+lastWinner n draws boards = case find (not . isWinner (take n draws)) boards of
+  Just board -> (take (n+1) draws, board)
+  Nothing -> lastWinner (n - 1) draws boards
 
 isWinner :: Draws -> Board -> Bool
 isWinner draws board = any winner board || any winner (transpose board)
