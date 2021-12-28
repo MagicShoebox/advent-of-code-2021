@@ -1,9 +1,9 @@
 module Main (main) where
 
 import Data.List (find, transpose)
-import Data.Text (pack, splitOn, unpack)
 import Debug.Trace (traceShow)
 import Util.Advent (showResult, tbd)
+import Util.String (split)
 
 type Draws = [Int]
 
@@ -44,7 +44,7 @@ parseInput input = (parseDraws draws, parseBoards boards)
     draws = head $ lines input
     boards = drop 2 $ lines input
 
-parseDraws = map (read . unpack) . splitOn (pack ",") . pack
+parseDraws = map read . split ","
 
 parseBoards [] = []
 parseBoards input = parseBoard board : parseBoards rest
