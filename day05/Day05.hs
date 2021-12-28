@@ -17,7 +17,10 @@ part1 input = length (filter ((> 1) . fst) freqs)
     freqs = frequency $ concatMap points lines
     lines = horzAndVert $ parseInput input
 
-part2 = tbd
+part2 input = length (filter ((> 1) . fst) freqs)
+  where
+    freqs = frequency $ concatMap points lines
+    lines = parseInput input
 
 -- https://stackoverflow.com/a/26372259/3491874
 frequency = map (length &&& head) . group . sort
@@ -25,7 +28,9 @@ frequency = map (length &&& head) . group . sort
 points (Line (Point x1 y1) (Point x2 y2))
   | x1 == x2 = zip (repeat x1) [min y1 y2 .. max y1 y2]
   | y1 == y2 = zip [min x1 x2 .. max x1 x2] (repeat y1)
-  | otherwise = zip [min x1 x2 .. max x1 x2] [min y1 y2 .. max y1 y2]
+  | otherwise = zip [x1, (next x1 x2) .. x2] [y1, (next y1 y2) .. y2]
+  where
+    next a b = if b > a then succ a else pred a
 
 horzAndVert = filter filterLine
   where
