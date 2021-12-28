@@ -4,6 +4,7 @@ import Control.Arrow ((&&&))
 import Data.List (group, sort)
 import Debug.Trace (traceShow)
 import Util.Advent (showResult, tbd)
+import Util.List (frequency)
 import Util.String (split)
 
 data Point = Point Int Int
@@ -21,9 +22,6 @@ part2 input = length (filter ((> 1) . fst) freqs)
   where
     freqs = frequency $ concatMap points lines
     lines = parseInput input
-
--- https://stackoverflow.com/a/26372259/3491874
-frequency = map (length &&& head) . group . sort
 
 points (Line (Point x1 y1) (Point x2 y2))
   | x1 == x2 = zip (repeat x1) [min y1 y2 .. max y1 y2]
