@@ -9,18 +9,18 @@ import Util.String (split)
 
 main = showResult part1 part2
 
-part1 input = sum [pop age 80 | age <- [0 .. 8]]
+part1 input = population (parseInput input) 80
+
+part2 input = population (parseInput input) 256
+
+-- Memoization: https://stackoverflow.com/a/5553390/3491874
+population initial day = sum [population' day age | age <- [0 .. 8]]
   where
-    pop = population (parseInput input)
-
-part2 = tbd
-
-population initial age day
-  | day < 0 = 0
-  | day == 0 = fromMaybe 0 (lookup age initial)
-  | age == 6 = population initial 7 (day - 1) + population initial 0 (day - 1)
-  | age == 8 = population initial 0 (day - 1)
-  | otherwise = population initial (age + 1) (day - 1)
+    population' 0 age = fromMaybe 0 (lookup age initial)
+    population' day age = memo !! day !! age
+    memo = map (\x -> map (pop x) [0 ..]) [0 ..]
+    pop day 6 = sum (map (population' (day - 1)) [0, 7])
+    pop day age = population' (day - 1) ((age + 1) `mod` 9)
 
 parseInput :: String -> [(Int, Int)]
 parseInput = map swap . frequency . map read . split ","
