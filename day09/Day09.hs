@@ -1,35 +1,44 @@
 module Main (main) where
 
 import Data.Char (digitToInt)
-import Data.List (transpose, zip5, zipWith5)
+import Data.List (find, sortOn, transpose, union, zip5, zipWith5)
+import Data.Ord (Down (Down), comparing)
 import Debug.Trace (traceShow)
 import Util.Advent (showResult, tbd)
 
 main = showResult part1 part2
 
-part1 = sum . map risk . filter isLowest . zipNeighbors . parseInput
+part1 input = sum $ map risk lowest
   where
-    risk (a, _, _, _, _) = a + 1
+    lowest = filter (isLowest heights) points
+    (points, heights) = parseInput input
+    risk p = heights p + 1
 
-part2 = tbd
-
-isLowest (a, b, c, d, e) = all (> a) [b, c, d, e]
-
-zipNeighbors xss = concat $ zipWith5 zip5 center up right down left
+part2 input = fmap (product . take 3 . sortOn Down . map length) basins
   where
-    center = offset 0 0 xss
-    up = offset 0 (-1) xss
-    right = offset 1 0 xss
-    down = offset 0 1 xss
-    left = offset (-1) 0 xss
+    basins = find ((== maxBasins) . sum . map length) (iterate fill lowest)
+    fill = map (grow heights)
+    maxBasins = length $ filter (< 9) $ map heights points
+    lowest = map (: []) $ filter (isLowest heights) points
+    (points, heights) = parseInput input
 
-offset x y xss = map (drop (1 + x)) $ drop (1 + y) xss
-
-addBorder xss = [lineBuffer] ++ xss ++ [lineBuffer]
+grow heights basin = basin `union` filter ((< 9) . heights) border
   where
-    lineBuffer = replicate lineLength 10
-    lineLength = length $ head xss
+    border = filter (`notElem` basin) $ concatMap neighbors basin
 
-parseInput input = addBorder $ transpose $ addBorder $ transpose raw
+isLowest hs p = all ((> hs p) . hs) (neighbors p)
+
+neighbors (x, y) = [up, right, down, left]
+  where
+    up = (x, y - 1)
+    right = (x + 1, y)
+    down = (x, y + 1)
+    left = (x - 1, y)
+
+parseInput input = (points, \(x, y) -> heights !! x !! y)
   where
     raw = map (map digitToInt) $ lines input
+    heights = addBorder $ transpose $ addBorder $ transpose raw
+    addBorder xss = [lineBuffer xss] ++ xss ++ [lineBuffer xss]
+    lineBuffer xss = replicate (length $ head xss) 10
+    points = [(x, y) | x <- [1 .. length raw], y <- [1 .. length $ transpose raw]]
