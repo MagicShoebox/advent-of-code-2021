@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Control.Monad (join, void)
-import Data.List ((\\))
+import Data.List (sort, (\\))
 import Data.Maybe (fromJust)
 import Debug.Trace (traceShow)
 import Text.ParserCombinators.ReadP (ReadP, char, choice, eof, get, many, many1, readP_to_S, satisfy, (<++))
@@ -9,7 +9,7 @@ import Util.Advent (showResult, tbd)
 
 data Valid = Valid
 
-data ParseError = Incomplete Char | Corrupt Char
+data ParseError = Incomplete String | Corrupt Char
 
 type ParseResult = Either ParseError Valid
 
@@ -25,7 +25,17 @@ part1 input = sum $ map score corrupt
     score '>' = 25137
     score _ = undefined
 
-part2 = tbd
+part2 input = middle $ sort $ map score incomplete
+  where
+    middle xs = xs !! (length xs `div` 2)
+    errors = [x | (Left x) <- parseInput input]
+    incomplete = [x | (Incomplete x) <- errors]
+    score = foldl (\b a -> b * 5 + a) 0 . map score'
+    score' ')' = 1
+    score' ']' = 2
+    score' '}' = 3
+    score' '>' = 4
+    score' _ = undefined
 
 tokens = [('[', ']'), ('(', ')'), ('{', '}'), ('<', '>')]
 
@@ -33,14 +43,17 @@ parseLine = sequence <$> many1 group
 
 group = do
   start <- choice $ map (char . fst) tokens
-  many group >>= either (return . Left) (const $ incomplete start <++ valid start <++ corrupt start) . sequence
+  many group >>= either (error start) (continue start) . sequence
   where
+    error s (Incomplete xs) = incomplete s xs
+    error _ (Corrupt c) = return $ Left $ Corrupt c
+    continue s _ = incomplete s "" <++ valid s <++ corrupt s
     valid s = do
       char (fromJust $ lookup s tokens)
       return $ Right Valid
-    incomplete s = do
+    incomplete s xs = do
       eof
-      return $ Left $ Incomplete s
+      return $ Left $ Incomplete $ xs ++ [fromJust $ lookup s tokens]
     corrupt s = do
       e <- satisfy (`elem` map snd tokens \\ [s])
       return $ Left $ Corrupt e
