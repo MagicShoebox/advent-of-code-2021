@@ -2,22 +2,25 @@
 
 module Main (main) where
 
-import Data.Array (Array, Ix (inRange), accum, bounds, elems, indices, listArray, (!))
+import Data.Array (Array, accum, bounds, elems, inRange, indices, listArray, (!))
 import Data.Char (digitToInt)
-import Data.List (transpose, (\\))
+import Data.List (elemIndex, transpose, (\\))
 import Data.Maybe (fromMaybe, isNothing)
 import Debug.Trace (traceShow)
 import Util.Advent (showResult, tbd)
 
 main = showResult part1 part2
 
-part1 input = fst $ iterate step (0, energy) !! 100
+part1 input = sum $ take 101 $ map fst $ iterate step (0, energy)
   where
     energy = parseInput input
 
-part2 = tbd
+part2 input = elemIndex maxFlashes $ map fst $ iterate step (0, energy)
+  where
+    maxFlashes = length $ indices energy
+    energy = parseInput input
 
-step (flashes, energy) = (flashes + length (filter isNothing $ elems energy''), resetNothing energy'')
+step (_, energy) = (length $ filter isNothing $ elems energy'', resetNothing energy'')
   where
     energy' = fmap (Just . (1 +)) energy
     energy'' = until allUnder9 flash energy'
