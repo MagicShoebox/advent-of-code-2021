@@ -13,12 +13,12 @@ data Line = Line Point Point
 
 main = showResult part1 part2
 
-part1 input = length (filter ((> 1) . fst) freqs)
+part1 input = length (filter ((> 1) . snd) freqs)
   where
     freqs = frequency $ concatMap points lines
     lines = horzAndVert $ parseInput input
 
-part2 input = length (filter ((> 1) . fst) freqs)
+part2 input = length (filter ((> 1) . snd) freqs)
   where
     freqs = frequency $ concatMap points lines
     lines = parseInput input

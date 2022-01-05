@@ -10,7 +10,7 @@ import Util.List (frequency)
 
 main = showResult part1 part2
 
-part1 input = uncurry (-) $ (maximum &&& minimum) $ map fst $ frequency final
+part1 input = uncurry (-) $ (maximum &&& minimum) $ map snd $ frequency final
   where
     final = iterate (step rules) template !! 10
     (template, rules) = parseInput input

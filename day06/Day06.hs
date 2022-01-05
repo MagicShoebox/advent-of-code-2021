@@ -23,4 +23,4 @@ population initial day = sum [population' day age | age <- [0 .. 8]]
     pop day age = population' (day - 1) ((age + 1) `mod` 9)
 
 parseInput :: String -> [(Int, Int)]
-parseInput = map swap . frequency . map read . split ","
+parseInput = frequency . map read . split ","
