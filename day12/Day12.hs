@@ -2,34 +2,34 @@ module Main (main) where
 
 import Control.Arrow ((&&&))
 import Data.Char (isLower)
-import Data.Graph (Graph, Vertex, dfs, graphFromEdges, topSort, vertices)
+import Data.Containers.ListUtils (nubOrd)
 import Data.List ((\\))
-import Data.Map (fromListWith, toList)
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Map (fromListWith, (!))
 import Debug.Trace (traceShow)
 import Util.Advent (showResult, tbd)
 import Util.String (split)
 
 main = showResult part1 part2
 
-part1 input = length $ paths edges ["start"]
+part1 input = length $ paths unseen ["start"]
   where
-    edges = thd . nodeFromVertex . fromJust . vertexFromKey
-    (graph, nodeFromVertex, vertexFromKey) = parseInput input
+    unseen visited = edges (head visited) \\ small visited
+    edges = parseInput input
 
-part2 = tbd
-
-paths edges ("end" : xs) = [reverse $ "end" : xs]
-paths edges (x : xs) = concatMap (paths edges . (: x : xs)) unseen
+part2 input = length $ paths unseen ["start"]
   where
-    unseen = edges x \\ filter small xs
-    small = isLower . head
-paths edges [] = []
+    unseen visited = edges (head visited) \\ seen (small visited)
+    seen visited = if duplicates visited then visited else ["start"]
+    duplicates visited = length visited /= length (nubOrd visited)
+    edges = parseInput input
 
-thd (_,_,x) = x
+small = filter (isLower . head)
 
-parseInput = graphFromEdges . map (\(k, v) -> (k, k, v)) . nodes . lines
+paths unseen ("end" : visited) = [reverse $ "end" : visited]
+paths unseen visited = concatMap (paths unseen . (: visited)) (unseen visited)
+
+parseInput = (!) . nodes . lines
   where
-    nodes = toList . fromListWith (++) . concatMap (edges . ends)
+    nodes = fromListWith (++) . concatMap (edges . ends)
     edges (a, b) = [(a, [b]), (b, [a])]
     ends = ((!! 0) &&& (!! 1)) . split "-"
