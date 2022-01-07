@@ -1,0 +1,9 @@
+cabal-version:      3.6
+name:               day15
+version:            0.1.0.0
+
+executable day15
+    main-is:          Day15.hs
+    other-modules:    Util.Advent, Util.Input
+    hs-source-dirs:   ./, ../
+    build-depends:    array, containers, base
