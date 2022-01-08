@@ -6,4 +6,4 @@ executable day15
     main-is:          Day15.hs
     other-modules:    Util.Advent, Util.Input
     hs-source-dirs:   ./, ../
-    build-depends:    array, containers, base
+    build-depends:    heap, array, containers, base
