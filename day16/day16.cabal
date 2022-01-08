@@ -1,0 +1,9 @@
+cabal-version:      3.6
+name:               day16
+version:            0.1.0.0
+
+executable day16
+    main-is:          Day16.hs
+    other-modules:    Util.Advent, Util.Input
+    hs-source-dirs:   ./, ../
+    build-depends:    base
