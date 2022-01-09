@@ -6,36 +6,48 @@ import Data.Char (ord)
 import Debug.Trace (traceShow, traceShowId)
 import Util.Advent (showResult, tbd)
 
-data PacketType = Operator | Literal
-
 data LengthType = Total Int | Count Int deriving (Show)
 
 main = showResult part1 part2
 
 part1 = evalState packet . parseInput
-
-part2 = tbd
-
-packet = do
-  version <- readInt 3
-  pt <- packetType <$$> readInt 3
-  case pt of
-    Nothing -> return Nothing
-    (Just Literal) -> literal >> return version
-    (Just Operator) -> liftM2 (+) version <$> operator
   where
-    packetType 4 = Literal
-    packetType _ = Operator
+    packet = do
+      version <- readInt 3
+      pt <- readInt 3
+      case pt of
+        Nothing -> return Nothing
+        (Just 4) -> literal >> return version
+        _ -> liftM2 (+) version <$> operator packet sum
 
-literal = do
-  more <- readBool
-  val <- readInt 4
-  case more of
-    Nothing -> return Nothing
-    (Just True) -> liftM2 ((+) . (16 *)) val <$> literal
-    (Just False) -> return val
+part2 = evalState packet . parseInput
+  where
+    packet = do
+      readInt 3
+      pt <- readInt 3
+      case pt of
+        (Just 0) -> operator packet sum
+        (Just 1) -> operator packet product
+        (Just 2) -> operator packet minimum
+        (Just 3) -> operator packet maximum
+        (Just 4) -> literal
+        (Just 5) -> operator packet (\[a, b] -> if a > b then 1 else 0)
+        (Just 6) -> operator packet (\[a, b] -> if a < b then 1 else 0)
+        (Just 7) -> operator packet (\[a, b] -> if a == b then 1 else 0)
+        _ -> return Nothing
 
-operator = do
+literal = literal' (Just 0)
+  where
+    literal' x = do
+      more <- readBool
+      val <- readInt 4
+      case more of
+        Nothing -> return Nothing
+        (Just True) -> literal' $ shift x val
+        (Just False) -> return $ shift x val
+    shift = liftM2 ((+) . (16 *))
+
+operator packet op = do
   ct <- readBool
   lt <- case ct of
     Nothing -> return Nothing
@@ -43,14 +55,14 @@ operator = do
     (Just True) -> Count <$$> readInt 11
   case lt of
     Nothing -> return Nothing
-    (Just (Count x)) -> sum <$$> (sequence <$> replicateM x packet)
-    (Just (Total x)) -> sum <$$> (evalState packets <$$> readBin x)
+    (Just (Count x)) -> op <$$> (sequence <$> replicateM x packet)
+    (Just (Total x)) -> op <$$> (evalState (packets packet) <$$> readBin x)
 
-packets = do
+packets packet = do
   pkt <- packet
   case pkt of
     Nothing -> return []
-    (Just x) -> (x :) <$> packets
+    (Just x) -> (x :) <$> packets packet
 
 readInt n = do
   foldl ((+) . (2 *)) 0 <$$> readBin n
