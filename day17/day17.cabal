@@ -6,4 +6,4 @@ executable day17
     main-is:          Day17.hs
     other-modules:    Util.Advent, Util.Input
     hs-source-dirs:   ./, ../
-    build-depends:    base
+    build-depends:    regex-pcre, base
