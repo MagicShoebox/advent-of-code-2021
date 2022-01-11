@@ -10,7 +10,9 @@ main = showResult part1 part2
 
 part1 input = magnitude $ foldl1 (\a b -> reduce $ add a b) $ parseInput input
 
-part2 = tbd
+part2 input = maximum [magnitude $ reduce $ add x y | x <- elems, y <- elems, x /= y]
+  where
+    elems = parseInput input
 
 add x y = Node 0 [foldTree incrementDepth x, foldTree incrementDepth y]
   where
