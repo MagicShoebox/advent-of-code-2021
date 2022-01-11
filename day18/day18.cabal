@@ -6,4 +6,4 @@ executable day18
     main-is:          Day18.hs
     other-modules:    Util.Advent, Util.Input
     hs-source-dirs:   ./, ../
-    build-depends:    base
+    build-depends:    containers, base
