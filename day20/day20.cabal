@@ -1,0 +1,9 @@
+cabal-version:      3.6
+name:               day20
+version:            0.1.0.0
+
+executable day20
+    main-is:          Day20.hs
+    other-modules:    Util.Advent, Util.Input
+    hs-source-dirs:   ./, ../
+    build-depends:    base
