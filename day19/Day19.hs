@@ -19,7 +19,11 @@ part1 input = length $ nubOrd $ concatMap (\(id, rs) -> map (convert id 0) rs) s
     scanners = parseInput input
     convert = findConversion $ conversions scanners
 
-part2 = tbd
+part2 input = maximum [sum $ map abs $ zipWith (-) s1 s2 | s1 <- positions, s2 <- positions]
+  where
+    positions = map (\(id, _) -> convert id 0 [0, 0, 0]) scanners
+    scanners = parseInput input
+    convert = findConversion $ conversions scanners
 
 findConversion cnvrs s1 s2 = foldl1 (.) $ map snd $ head $ findConversion' [(s1, id)]
   where
