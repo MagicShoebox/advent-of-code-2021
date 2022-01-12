@@ -6,4 +6,4 @@ executable day19
     main-is:          Day19.hs
     other-modules:    Util.Advent, Util.Input
     hs-source-dirs:   ./, ../
-    build-depends:    base
+    build-depends:    containers, base
