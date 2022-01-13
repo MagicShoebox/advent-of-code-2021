@@ -6,4 +6,4 @@ executable day20
     main-is:          Day20.hs
     other-modules:    Util.Advent, Util.Input
     hs-source-dirs:   ./, ../
-    build-depends:    base
+    build-depends:    array, base
