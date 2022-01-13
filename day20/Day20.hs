@@ -8,12 +8,23 @@ import Util.Advent (showResult, tbd)
 
 main = showResult part1 part2
 
-part1 input = sum $ map (length . filter (== '#')) $ snd final
+part1 input = litPixels final
   where
-    final = iterate (second' expand . enhance algorithm) ('.', expand '.' image) !! 2
+    final = enhanceN algorithm image 2
     (algorithm, image) = parseInput input
 
-part2 = tbd
+part2 input = litPixels final
+  where
+    final = enhanceN algorithm image 50
+    (algorithm, image) = parseInput input
+
+litPixels = sum . map (length . filter (== '#'))
+
+enhanceN algorithm image n = snd $ enhanced !! n
+  where
+    initial = ('.', expand '.' image)
+    step = second' expand . enhance algorithm
+    enhanced = iterate step initial
 
 enhance algorithm (pad, image) = (nextPad, map (map pixel) reordered)
   where
