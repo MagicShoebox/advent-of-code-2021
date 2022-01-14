@@ -4,6 +4,6 @@ version:            0.1.0.0
 
 executable day21
     main-is:          Day21.hs
-    other-modules:    Util.Advent, Util.Input
+    other-modules:    Util.Advent, Util.Input, Util.List
     hs-source-dirs:   ./, ../
-    build-depends:    base
+    build-depends:    containers, base
