@@ -1,0 +1,9 @@
+cabal-version:      3.6
+name:               day23
+version:            0.1.0.0
+
+executable day23
+    main-is:          Day23.hs
+    other-modules:    Util.Advent, Util.Input
+    hs-source-dirs:   ./, ../
+    build-depends:    base
