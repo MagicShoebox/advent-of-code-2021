@@ -1,7 +1,6 @@
 module Main (main) where
 
-import Data.List (partition, transpose, zipWith4)
-import Data.Maybe (mapMaybe)
+import Data.List (partition, zip4, zipWith4)
 import Debug.Trace (traceShow, traceShowId)
 import Text.Regex.PCRE ((=~))
 import Util.Advent (showResult, tbd)
@@ -16,15 +15,23 @@ main = showResult part1 part2
 
 part1 input = sum $ map size $ foldl doStep [] steps
   where
-    size (a, b) = product $ map ((+ 1) . abs) $ zipWith (-) a b
     steps = filter initialization $ parseInput input
     initialization (Step _ (start, end)) = all inFifty start && all inFifty end
     inFifty x = x >= -50 && x <= 50
 
-part2 = tbd
+part2 input = sum $ map size $ foldl doStep [] steps
+  where
+    steps = parseInput input
 
-doStep ons (Step True bounds) = ons ++ foldl (\bs x -> concatMap (without x) bs) [bounds] ons
-doStep ons (Step False bounds) = concatMap (without bounds) ons
+size (a, b) = product $ map ((+ 1) . abs) $ zipWith (-) a b
+
+doStep ons (Step mode (b1, b2)) = merge mode
+  where
+    merge True = ons ++ foldl (\bs x -> concatMap (without x) bs) [(b1, b2)] xs
+    merge False = ys ++ concatMap (without (b1, b2)) xs
+    (xs, ys) = partition intersects ons
+    intersects (a1, a2) = not $ any outside $ zip4 b1 b2 a1 a2
+    outside (b1, b2, a1, a2) = b2 < a1 || b1 > a2
 
 without (b1, b2) (a1, a2) = bounds
   where
