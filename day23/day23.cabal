@@ -4,6 +4,6 @@ version:            0.1.0.0
 
 executable day23
     main-is:          Day23.hs
-    other-modules:    Util.Advent, Util.Input
+    other-modules:    Graph, Util.Advent, Util.Input
     hs-source-dirs:   ./, ../
-    build-depends:    base
+    build-depends:    array, heap, containers, base
