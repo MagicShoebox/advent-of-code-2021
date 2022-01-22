@@ -1,67 +1,88 @@
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TupleSections #-}
 
 module Main (main) where
 
-import Data.Array (Array, accumArray, array, assocs, bounds, elems, listArray, (!), (//))
+import Data.Array (Array, assocs, bounds, listArray, (!), (//))
 import qualified Data.Heap as Heap (MinPrioHeap, empty, insert, view)
 import Data.List (intersect, transpose, (\\))
-import qualified Data.Map as Map (Map, empty, insert, (!?))
 import Data.Maybe (fromJust, fromMaybe)
-import Data.Tuple (swap)
+import qualified Data.Set as Set (Set, empty, fromList, insert, member, notMember, size, toList)
 import Debug.Trace (traceShow, traceShowId)
 import Graph (Graph (Graph), Heuristic (Heuristic), astar)
 import Util.Advent (showResult, tbd)
 
-type GameState = Array Char [(Int, Int)]
+data Board = Board
+  { rooms :: Array Char (Set.Set (Int, Int)),
+    hallway :: Set.Set (Int, Int),
+    forbidden :: Set.Set (Int, Int)
+  }
+
+data Path = Path
+  { start :: (Int, Int),
+    trail :: Set.Set (Int, Int),
+    end :: (Int, Int)
+  }
 
 main = showResult part1 part2
 
 part1 input = score
   where
-    (score, burrows) = fromJust $ solve (parseInput input)
+    burrow = parseInput input
+    game = board burrow
+    (score, burrows) = fromJust $ solve game burrow
 
-part2 = tbd
-
-solve burrow = astar (Graph edges) (Heuristic heuristic) (burrow, 0) end
+part2 input = score
   where
-    end = burrow // [(r, a) | (a, rs) <- assocs rooms, r <- rs]
+    (top, bottom) = splitAt 3 $ lines input
+    expanded = unlines $ top ++ ["  #D#C#B#A#", "  #D#B#A#C#"] ++ bottom
+    burrow = parseInput expanded
+    game = board burrow
+    (score, burrows) = fromJust $ solve game burrow
 
-edges burrow = [(withMove burrow m, score m) | m <- ms]
+solve game burrow = astar (Graph $ edges game) (Heuristic $ heuristic game) (burrow, 0) end
   where
-    ms = concatMap (moves burrow) (amphipods burrow)
+    end = burrow // [(r, a) | (a, rs) <- assocs $ rooms game, r <- Set.toList rs]
 
-heuristic (b, w) = w + sum [distance a pt (head $ rooms ! a) | (pt, a) <- amphipods b, pt `notElem` rooms ! a]
+edges game burrow = [(withMove burrow m, score m) | m <- ms]
   where
-    distance a (x1, y1) (x2, y2) = multiplier a * (abs (x1 - x2) + abs (y1 - y2))
+    ms = concatMap (moves game burrow) (amphipods burrow)
 
-amphipods burrow = filter ((`elem` ['A' .. 'D']) . snd) $ assocs burrow
-
-withMove burrow (amphipod, move) = burrow // [(head move, '.'), (last move, amphipod)]
-
-moves burrow (pos, amphipod) = map (amphipod,) ms
+heuristic Board {rooms} (b, w) = w - sum [multiplier a | (pt, a) <- amphipods b, inRoom (pt, a)]
   where
-    as = destinations burrow (pos, amphipod)
+    inRoom (pt, a) = pt `Set.member` (rooms ! a)
+
+amphipods burrow = [(pt, a) | (pt, a) <- assocs burrow, a == 'A' || a == 'B' || a == 'C' || a == 'D']
+
+withMove burrow (amphipod, move) = burrow // [(start move, '.'), (end move, amphipod)]
+
+moves game burrow (pos, amphipod) = map (amphipod,) ms
+  where
+    as = destinations game burrow (pos, amphipod)
     ws = walkable burrow pos
-    ms = [w | w <- ws, last w `elem` as, last w `notElem` forbidden]
+    ms = [w | w <- ws, end w `Set.member` as, end w `Set.notMember` forbidden game]
 
-destinations burrow (pos, amphipod)
-  | pos `elem` hallway && occupied = []
-  | pos `elem` hallway && not occupied = targets
-  | otherwise = hallway ++ targets
+destinations Board {hallway, rooms} burrow (pos, amphipod)
+  | pos `Set.member` hallway && occupied = Set.empty
+  | pos `Set.member` hallway && not occupied = targets
+  | pos `Set.member` targets && occupied = hallway
+  | pos `Set.member` targets && not occupied = Set.empty
+  | occupied = hallway
+  | otherwise = targets
   where
     targets = rooms ! amphipod
-    hallway = [(x, y) | ((x, y), c) <- assocs burrow, c == '.', y == 1]
     occupied = any ((\x -> x /= '.' && x /= amphipod) . (burrow !)) targets
 
-walkable burrow pos = tail $ walkable' [pos]
+walkable burrow pos = tail $ walkable' $ Path pos Set.empty pos
   where
     neighbors (x, y) = [(x - 1, y), (x, y - 1), (x + 1, y), (x, y + 1)]
-    walkable' (x : xs) = case [p : x : xs | p <- neighbors x, p `notElem` xs, burrow ! p == '.'] of
-      [] -> [reverse (x : xs)]
-      paths -> reverse (x : xs) : concatMap walkable' paths
-    walkable' [] = undefined
+    walkable' Path {start, trail, end} =
+      let trail' = Set.insert end trail
+       in case [Path start trail' p | p <- neighbors end, p `Set.notMember` trail, burrow ! p == '.'] of
+            [] -> [Path start trail' end]
+            paths -> Path start trail' end : concatMap walkable' paths
 
-score (amphipod, path) = multiplier amphipod * (length path - 1)
+score (amphipod, Path {trail}) = multiplier amphipod * (Set.size trail - 1)
 
 multiplier 'A' = 1
 multiplier 'B' = 10
@@ -73,9 +94,13 @@ display burrow = unlines [[burrow ! (x, y) | x <- [x1 .. x2]] | y <- [y1 .. y2]]
   where
     ((x1, y1), (x2, y2)) = bounds burrow
 
-rooms = listArray ('A', 'D') [[(3, 2), (3, 3)], [(5, 2), (5, 3)], [(7, 2), (7, 3)], [(9, 2), (9, 3)]]
-
-forbidden = [(3, 1), (5, 1), (7, 1), (9, 1)]
+board burrow = Board rooms hallway forbidden
+  where
+    rooms = listArray ('A', 'D') $ map (Set.fromList . take heights) roomPoints
+    hallway = Set.fromList [(x, y) | ((x, y), c) <- assocs burrow, c == '.', y == 1]
+    forbidden = Set.fromList [(x, y -1) | ((x, y) : _) <- roomPoints]
+    heights = snd (snd (bounds burrow)) - 2
+    roomPoints = map (\x -> zip (repeat x) [2 .. 5]) [3, 5, 7, 9]
 
 parseInput input = initial // [((x, y), c) | (y, row) <- zip [0 ..] raw, (x, c) <- zip [0 ..] row]
   where
