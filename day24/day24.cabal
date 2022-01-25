@@ -6,4 +6,4 @@ executable day24
     main-is:          Day24.hs
     other-modules:    Util.Advent, Util.Input
     hs-source-dirs:   ./, ../
-    build-depends:    base
+    build-depends:    array, containers, transformers, base
