@@ -1,69 +1,61 @@
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Main (main) where
 
-import Control.Monad.Trans.State (execState, get, put)
-import Data.Array (Array)
-import qualified Data.Array as A (listArray, (!), (//))
-import Data.Map (Map)
-import qualified Data.Map as M (fromList, fromListWith, singleton, size, toList, unionWith, (!))
-import Data.Set (Set)
-import qualified Data.Set as S (empty, fromList, null, singleton, size, toList, union)
-import Data.Tree (Tree (Node), foldTree, rootLabel, subForest)
-import Debug.Trace (traceShow, traceShowId)
+import Control.Monad.Trans.State (State, evalState, gets, modify)
+import Data.Array (Array, accum, elems, listArray, (!), (//))
+import Data.Char (digitToInt)
+import Data.Maybe (catMaybes, mapMaybe)
+import Data.Set (Set, empty, member, singleton, union)
+import Debug.Trace (trace, traceShow, traceShowId)
 import Util.Advent (showResult, tbd)
 
 type Reg = Char
 
-type Input = Int
+type Op = Int -> Int -> Int
 
-type Constraints = Map Input Int
-
-type Values = Map Int (Set Constraints)
-
-data State = State {inpIdx :: Int, regs :: Array Char Values}
+data Instr = Input Reg | OpReg Op Reg Reg | OpLit Op Reg Int | End
 
 main = showResult part1 part2
 
-part1 input = (regs A.! 'z') M.! 0
+part1 input = maximumValid instructions
   where
-    State {regs} = parseInput input
+    instructions = parseInput input
 
 part2 = tbd
 
-combine op left right = traceShow (M.size left, M.size right) M.fromListWith S.union [(v1 `op` v2, combine' c1 c2) | (v1, c1) <- M.toList left, (v2, c2) <- M.toList right]
+maximumValid instructions = evalState (execute initialRegs 0) cache
   where
-    foo s1 s2 = undefined
-    combine' cs1 cs2
-      | S.null cs1 = cs2
-      | S.null cs2 = cs1
-      | otherwise = S.fromList [M.unionWith (\a b -> undefined) c1 c2 | c1 <- S.toList cs1, c2 <- S.toList cs2]
+    initialRegs = listArray ('w', 'z') (repeat 0)
+    cache = fmap (const empty) instructions
+    execute regs n = do
+      cached <- gets (! n)
+      if (r1, r2, r3, r4) `member` cached
+        then return Nothing
+        else do
+          result <- evaluate (instructions ! n)
+          modify (\s -> accum union s [(n, singleton (r1, r2, r3, r4))])
+          return result
+      where
+        [r1, r2, r3, r4] = elems regs
+        evaluate (OpReg op d s) = execute (regs // [(d, op (regs ! d) (regs ! s))]) (n + 1)
+        evaluate (OpLit op d l) = execute (regs // [(d, op (regs ! d) l)]) (n + 1)
+        evaluate (Input r) = headMaybe . catMaybes <$> mapM (\i -> fmap (i :) <$> execute (regs // [(r, if n < 80 then trace (show n ++ ":" ++ show i) i else i)]) (n + 1)) [9, 8 .. 1]
+        evaluate End = return $ if regs ! 'z' == 0 then Just [] else Nothing
 
-parseInput input = execState instructions initial
+parseInput input = listArray (0, length lines') instructions
   where
-    instructions = mapM (\(a, b) -> parseInstruction a (words b)) $ zip [0 ..] $ lines input
-    initial = State {inpIdx = 0, regs = A.listArray ('w', 'z') (repeat $ M.singleton 0 S.empty)}
+    lines' = lines input
+    instructions = map (parseInstruction . words) lines' ++ [End]
+    parseInstruction ["inp", reg : _] = Input reg
+    parseInstruction [op, reg : _, term@(t : _)]
+      | t `elem` ['w' .. 'z'] = OpReg (parseOp op) reg t
+      | otherwise = OpLit (parseOp op) reg (read term)
+    parseInstruction _ = undefined
+    parseOp "add" = (+)
+    parseOp "mul" = (*)
+    parseOp "div" = div
+    parseOp "mod" = mod
+    parseOp "eql" = \a b -> if a == b then 1 else 0
+    parseOp _ = undefined
 
-parseInstruction n ["inp", reg : _] = do
-  State {inpIdx, regs} <- get
-  let idx' = inpIdx + 1
-  let values = M.fromList [(v, S.singleton $ M.singleton inpIdx v) | v <- [1 .. 9]]
-  let regs' = regs A.// [(reg, values)]
-  put $ State idx' regs'
-parseInstruction n [op, reg : _, term@(t : _)] = do
-  State {inpIdx, regs} <- get
-  let isReg c = c == 'w' || c == 'x' || c == 'y' || c == 'z'
-  let term' = if isReg t then regs A.! t else M.singleton (read term) S.empty
-  let reg' = traceShow n combine (parseOp op) (regs A.! reg) term'
-  let regs' = regs A.// [(reg, reg')]
-  put $ State inpIdx regs'
-parseInstruction _ _ = undefined
-
-parseOp "add" = (+)
-parseOp "mul" = (*)
-parseOp "div" = div
-parseOp "mod" = mod
-parseOp "eql" = eql
-parseOp _ = undefined
-
-eql x y = if x == y then 1 else 0
+headMaybe [] = Nothing
+headMaybe (x : _) = Just x
